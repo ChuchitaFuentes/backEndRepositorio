@@ -1,55 +1,41 @@
-let posts = require('../models/post.model');
+const { post } = require('../app');
+const Post = require('../models/post.model');
 
-//Logica de obtener todos los posts (GET)
-exports.getAllPost = (req,res) =>{
+//obtener todos los post (GET)
+exports.getAllPost = async (req, res) => {
+   try {
+    const posts = await Post.find();
     res.json(posts)
-}
-
-//Obtiene post por id
-exports.getPostById  = (req,res) =>{
-    const id = parseInt(req.params.id)
-    const post = posts.find(p => p.id ===id);
-    if(!post) return res.status(404).json({error: 'Post no encontrado'});
-    res.json(post)
-}
-
-//Crear post
-exports.createPost =(req, res) => {
-    //en lugar de usar un ID con fecha usar un id numerico pero primero deben de buscar que no exista un id con el mismo valor, si ya existe uno mostrar el error de post con id existente
-    const newPost ={
-        id: Date.now(),
-        title:req.body.title,
-        content:req.body.content
-    };
-    posts.push(newPost);
-    return res.status(201),json(newPost)
-}
-
-//Actualiza datos de post por id
-exports.updatePost = (req, res)=>{
-    const id = parseInt(req.params.id)
-    const index = posts.findIndex(p => p.id ===id);
-    if(index === -1) return res.status(404).json({error: 'Post no encontrado'});
-
-    posts[index] = {
-        ...post[index], 
-        title:req.body.title,
-        contentn: req.body.content
-    };
-    return res.json(posts[index])
-}
-
-//eliminar un post
-
-exports.deletePost =(req,res)=>{
-    const id = parseInt(req.params.id);
-    const inicial =posts.length;
-    posts = posts.filter(p => p.id !== id);
-    if (posts.length === inicial) return res.status(404).json({error: 'Post no encontrado'});
-
-    //Actualizar el modulo donde esta unestro arreglo de post
-    require('../models/post.model').splice(0, require('..models/post.model').length,...posts);
-
-    return res.status(204).end()
+   } catch (err) {
+    res.status(500).json({message: 'Error al obtener todos los posts', error: err.message });
+   }
 };
 
+//obtener post por id (GET)
+exports.getPostById = async (req,res) => {
+    try {
+        const post = await Post.findById(req.params.id);
+        if (post) return res.json(post);
+        return res.status(401).json({message: 'Post no encontrado'});
+    } catch (err) {
+        return res.status(500).json({message: 'Error al obtener el post', error: err.message});
+    }
+};
+
+// crear post 
+exports.createPost = async (req,res) => {
+    const post = new Post(req.body);
+    await post.save();
+    return res.status(201).json(post)
+};
+
+// Actualiza datos de post por id
+exports.updatePost = async (req,res) => {
+    const updated = await Post.findByIdAndUpdate(req.params.id, req.body, {new: true});
+    return res.json(updated)
+};
+
+exports.deletePost = async (req,res) => {
+    await Post.findByIdAndDelete(req.params.id);
+    return res.status(204).end();
+};
